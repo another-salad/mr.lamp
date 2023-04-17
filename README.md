@@ -7,14 +7,12 @@ Shoving a pico into a novelty lamp
 Circuit Python 8.0.5 - Wiznet W5100S-EVB-Pico/W5500-EVB-Pico  
   
 Dependencies:  
-    PICO  
++  Pico  
+    -- Place the below in the Pico's 'libs' DIR --  
     - adafruit_wiznet5k  
     - adafruit_bus_device  
     - adafruit_requests.mpy  
     - circuit-python-utils  
-        - networking\generate_mac_addr.py (use to generate mac, do not place in PICO file system)  
-        # --- DO NOT INCLUDE PARENT DIR WHEN COPYING TO THE PICO'S 'libs' DIR --- #  
-        - utils\config_utils.py  
-        - w5100s-evb-pico\*.py (all files)  
-        # --- --- #  
+        - utils\config_utils.py  (Do not include parent DIR)  
+        - w5100s-evb-pico\\*.py (Do not include parent DIR)  
   
