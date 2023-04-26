@@ -15,23 +15,31 @@ eth_interface = config_eth(NetworkConfig(**get_config_from_json_file()))
 wsgi_server, web_app = wsgi_web_server(eth_interface)
 wsgi_server.start()
 
-def _crpyto_operation(key, data, method):
-    # Example snippet to work from
-    # key = b'Sixteen byte key'
-    # inp = b'CircuitPython!!!' # Note: 16-bytes long
-    # iv = os.urandom(16)
+class UnsupportedTypeException(Exception):
+    """Usual shouty shouty Python"""
 
-    # # Encrypt
-    # outp = bytearray(len(inp))
-    # cipher = aesio.AES(key, aesio.MODE_CTR, iv)
-    # cipher.encrypt_into(inp, outp)
-    # hexlify(outp)
+def _validate(data):
+    if not isinstance(data, bytes):
+        if isinstance(data, str):
+            data = data.encode()  # DO WE NEED TO ASCII/LATIN?
+        else:
+            raise UnsupportedTypeException(f"Input data is not a str/bytes. It is {type(data)}")
 
-    # # Decrypt
-    # cipher = aesio.AES(key, aesio.MODE_CTR, iv)
-    # inp = bytes(outp)
-    # outp = bytearray(len(inp))
-    # cipher.encrypt_into(inp, outp)
-    # hexlify(outp)
-    # print(outp)
+    return data
+
+def gen_iv(size=16):
+    """Waffer thin wrapper for clarity"""
+    return os.urandom(size)
+
+def _crpyto_operation(key, message, method, iv_size=16):
+    message = _validate(message)
+    iv = message[-iv_size:]
+    message = message[:-iv_size]
+    cipher = aesio.AES(key, aesio.MODE_CTR, iv)
+    call = getattr(cipher, method)
+    output_buff = bytearray(len(message))
+    call(message, output_buff)
+    return output_buff.decode()
+
+def to_morse(data):
     pass
