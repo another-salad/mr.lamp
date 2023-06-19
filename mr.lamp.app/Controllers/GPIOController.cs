@@ -10,22 +10,43 @@ namespace GPIOAPI.Controllers
     public class GpioApiController : ControllerBase
     {
         private GpioController _gpio = new GpioController();
+        private JsonDocument? jsonDoc;
 
         [HttpPost]
         public async Task<IActionResult> SetGpioValue()
         {
-            _gpio.OpenPin(18, PinMode.Output);
             using var streamReader = new System.IO.StreamReader(Request.Body);
             var requestBody = await streamReader.ReadToEndAsync();
-            var jsonDocument = JsonDocument.Parse(requestBody);
-            foreach (var property in jsonDocument.RootElement.EnumerateObject()) {
-                string key = property.Name;
-                JsonElement jsonValue = property.Value;
-                var value = jsonValue.ToString();
-                bool realVal = bool.Parse(value);
-                _gpio.Write(18, realVal ? PinValue.High : PinValue.Low);
+            try
+            {
+                jsonDoc = JsonDocument.Parse(requestBody);
+                JsonElement root = jsonDoc.RootElement;
+                if (root.TryGetProperty("on", out JsonElement ledStatus))
+                {
+                    bool on = ledStatus.GetBoolean();
+                    _gpio.OpenPin(18, PinMode.Output);
+                    _gpio.Write(18, on ? PinValue.High : PinValue.Low);
+                    _gpio.ClosePin(18);
+                    return Ok();
+                }
+                else
+                {
+                    return BadRequest();
+                }
             }
-            return Ok();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception thrown {ex.Message}");
+                return BadRequest();
+
+            }
+            finally
+            {
+                if (jsonDoc is not null)
+                {
+                    jsonDoc.Dispose();
+                }
+            }
         }
     }
 }
