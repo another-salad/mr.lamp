@@ -1,6 +1,9 @@
 using System.Device.Gpio;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Threading;
+
+using static MorseCodeConverter;
 
 
 namespace GPIOAPI.Controllers
@@ -12,6 +15,8 @@ namespace GPIOAPI.Controllers
         private GpioController _gpio = new GpioController();
         private JsonDocument? jsonDoc;
 
+        private MorseCodeConverter converter = new MorseCodeConverter();
+
         [HttpPost]
         public async Task<IActionResult> SetGpioValue()
         {
@@ -21,11 +26,46 @@ namespace GPIOAPI.Controllers
             {
                 jsonDoc = JsonDocument.Parse(requestBody);
                 JsonElement root = jsonDoc.RootElement;
-                if (root.TryGetProperty("on", out JsonElement ledStatus))
+                if (root.TryGetProperty("message", out JsonElement message))
                 {
-                    bool on = ledStatus.GetBoolean();
+                    string messageAsString = message.ToString();
+                    Console.WriteLine(messageAsString);
+                    string messageAsMorse = ConvertToMorseCode(messageAsString);
+                    Console.WriteLine(messageAsMorse);
                     _gpio.OpenPin(18, PinMode.Output);
-                    _gpio.Write(18, on ? PinValue.High : PinValue.Low);
+                    _gpio.Write(18, PinValue.Low); // Make sure we are off at the start
+                    // hideous logic for now
+                    foreach (char c in messageAsMorse)
+                    {
+                        Console.WriteLine(c);
+                        if (c == '.')
+                        {
+                            _gpio.Write(18, PinValue.High);
+                            Thread.Sleep(250);
+                            _gpio.Write(18, PinValue.Low);
+                            Thread.Sleep(1000);
+                        }
+                        else if (c == '-')
+                        {
+                            _gpio.Write(18, PinValue.High);
+                            Thread.Sleep(1000);
+                            _gpio.Write(18, PinValue.Low);
+                            Thread.Sleep(1000);
+                        }
+                        else
+                        {
+                            // must be a space
+                            Thread.Sleep(1000);
+                        }
+                    }
+                    // to confirm the end of the message, lets do a 3 quick flashes
+                    for (int i = 0; i < 3; i++)
+                    {
+                        _gpio.Write(18, PinValue.High);
+                        Thread.Sleep(250);
+                        _gpio.Write(18, PinValue.Low);
+                        Thread.Sleep(250);
+                    }
                     _gpio.ClosePin(18);
                     return Ok();
                 }
