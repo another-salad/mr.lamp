@@ -1,7 +1,6 @@
 using System.Device.Gpio;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using System.Threading;
 
 using static MorseCodeConverter;
 
@@ -14,8 +13,29 @@ namespace GPIOAPI.Controllers
     {
         private GpioController _gpio = new GpioController();
         private JsonDocument? jsonDoc;
+        private int GpioPin = 18;
+        private int LongWait = 1000;
+        private int ShortWait = 250;
 
-        private MorseCodeConverter converter = new MorseCodeConverter();
+        private void CycleGpio (int waitTime)
+        {
+            _gpio.Write(GpioPin, PinValue.High);
+            Thread.Sleep(waitTime);
+            _gpio.Write(GpioPin, PinValue.Low);
+        }
+
+        private void BookEndMessage(Boolean FinalWait = true)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                CycleGpio(ShortWait);
+                Thread.Sleep(ShortWait);
+            }
+            if (FinalWait)
+            {
+                Thread.Sleep(750);
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> SetGpioValue()
@@ -29,44 +49,31 @@ namespace GPIOAPI.Controllers
                 if (root.TryGetProperty("message", out JsonElement message))
                 {
                     string messageAsString = message.ToString();
-                    Console.WriteLine(messageAsString);
                     string messageAsMorse = ConvertToMorseCode(messageAsString);
-                    Console.WriteLine(messageAsMorse);
-                    _gpio.OpenPin(18, PinMode.Output);
-                    _gpio.Write(18, PinValue.Low); // Make sure we are off at the start
-                    // hideous logic for now
+                    _gpio.OpenPin(GpioPin, PinMode.Output);
+                    _gpio.Write(GpioPin, PinValue.Low); // Make sure we are off at the start
+                    BookEndMessage();
                     foreach (char c in messageAsMorse)
                     {
-                        Console.WriteLine(c);
-                        if (c == '.')
+                        switch (c)
                         {
-                            _gpio.Write(18, PinValue.High);
-                            Thread.Sleep(250);
-                            _gpio.Write(18, PinValue.Low);
-                            Thread.Sleep(1000);
-                        }
-                        else if (c == '-')
-                        {
-                            _gpio.Write(18, PinValue.High);
-                            Thread.Sleep(1000);
-                            _gpio.Write(18, PinValue.Low);
-                            Thread.Sleep(1000);
-                        }
-                        else
-                        {
-                            // must be a space
-                            Thread.Sleep(1000);
+                            case '.':
+                                CycleGpio(ShortWait);
+                                Thread.Sleep(LongWait);
+                                break;
+                            case '-':
+                                CycleGpio(LongWait);
+                                Thread.Sleep(LongWait);
+                                break;
+                            default:
+                                // must be a space
+                                Thread.Sleep(LongWait);
+                                break;
                         }
                     }
                     // to confirm the end of the message, lets do a 3 quick flashes
-                    for (int i = 0; i < 3; i++)
-                    {
-                        _gpio.Write(18, PinValue.High);
-                        Thread.Sleep(250);
-                        _gpio.Write(18, PinValue.Low);
-                        Thread.Sleep(250);
-                    }
-                    _gpio.ClosePin(18);
+                    BookEndMessage(false);
+                    _gpio.ClosePin(GpioPin);
                     return Ok();
                 }
                 else
