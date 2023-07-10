@@ -33,7 +33,7 @@ namespace GPIOAPI.Controllers
             }
             if (FinalWait)
             {
-                Thread.Sleep(750);
+                Thread.Sleep(LongWait * 2);
             }
         }
 
@@ -67,7 +67,7 @@ namespace GPIOAPI.Controllers
                                 break;
                             default:
                                 // must be a space
-                                Thread.Sleep(LongWait);
+                                Thread.Sleep(LongWait * 2);
                                 break;
                         }
                     }

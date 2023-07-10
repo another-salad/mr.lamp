@@ -11,6 +11,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="System.Device.Gpio" Version="2.2.0-*" />
     <PackageReference Include="/mr.lamp/mr.lamp.app/Common/*.cs" />
+    <Content Include="certificates/*.pfx"><CopyToOutputDirectory>Always</CopyToOutputDirectory></Content>
   </ItemGroup>
 
 </Project>
